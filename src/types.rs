@@ -1,0 +1,22 @@
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+
+#[derive(Serialize)]
+pub struct PortBinding {
+    #[serde(rename = "HostPort")]
+    pub host_port: String,
+}
+
+#[derive(Serialize)]
+pub struct CreateContainer {
+    #[serde(rename = "Image")]
+    pub image: String,
+    #[serde(rename = "PortBindings")]
+    pub port_bindings: HashMap<String, Vec<PortBinding>>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CreateContainerResult {
+    #[serde(rename = "Id")]
+    pub id: String,
+}
