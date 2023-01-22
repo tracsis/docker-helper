@@ -22,7 +22,7 @@ use types::*;
 ///
 /// # Examples
 /// ```no_run
-/// let result = start_container_with_port_binding("test", "ubuntu:20.04", 80, 81);
+/// let result = docker_helper::start_container_with_port_binding("test", "ubuntu:20.04", 80, 81);
 /// ```
 pub fn start_container_with_port_binding(
     container_name: &str,
@@ -54,7 +54,7 @@ pub fn start_container_with_port_binding(
 ///
 /// # Examples
 /// ```no_run
-/// let result = pull_image("ubuntu:20.04");
+/// let result = docker_helper::pull_image("ubuntu:20.04");
 /// ```
 pub fn pull_image(image_name: &str) -> Result<()> {
     let path = format!("/images/create?fromImage={}", image_name);
@@ -69,8 +69,8 @@ pub fn pull_image(image_name: &str) -> Result<()> {
 ///
 /// # Examples
 /// ```no_run
-/// let id = start_container_with_port_binding("test", "ubuntu:20.04", 80, 81)?;
-/// let result = stop_and_cleanup_container(&id);
+/// let id = docker_helper::start_container_with_port_binding("test", "ubuntu:20.04", 80, 81).unwrap();
+/// let result = docker_helper::stop_and_cleanup_container(&id);
 /// ```
 pub fn stop_and_cleanup_container(id: &str) -> Result<()> {
     stop_container(id)?;
@@ -84,7 +84,7 @@ pub fn stop_and_cleanup_container(id: &str) -> Result<()> {
 ///
 /// # Examples
 /// ```no_run
-/// let result = start_container("6fe66725ed81");
+/// let result = docker_helper::start_container("6fe66725ed81");
 /// ```
 pub fn start_container(id: &str) -> Result<()> {
     let path = format!("/containers/{}/start", id);
@@ -99,7 +99,7 @@ pub fn start_container(id: &str) -> Result<()> {
 ///
 /// # Examples
 /// ```no_run
-/// let result = stop_container("6fe66725ed81");
+/// let result = docker_helper::stop_container("6fe66725ed81");
 /// ```
 pub fn stop_container(id: &str) -> Result<()> {
     let path = format!("/containers/{}/stop", id);
@@ -112,7 +112,7 @@ pub fn stop_container(id: &str) -> Result<()> {
 ///
 /// # Examples
 /// ```no_run
-/// let result = prune_containers();
+/// let result = docker_helper::prune_containers();
 /// ```
 pub fn prune_containers() -> Result<()> {
     let path = "/containers/prune".to_string();
