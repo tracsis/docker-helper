@@ -32,7 +32,10 @@ pub fn start_container_with_port_binding(
     container_port: u16,
     host_port: u16,
 ) -> Result<String> {
-    pull_image(image)?;
+    let existing_images = find_images(image)?;
+    if existing_images.is_empty() {
+        pull_image(image)?;
+    }
     let id = create_container(
         container_name,
         CreateContainer {
