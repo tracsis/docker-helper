@@ -20,3 +20,14 @@ pub struct CreateContainerResult {
     #[serde(rename = "Id")]
     pub id: String,
 }
+
+#[derive(Deserialize, Debug)]
+pub struct ImageDescriptor {
+    #[serde(rename = "Id")]
+    pub id: String,
+}
+
+#[derive(Serialize)]
+pub struct ImageFilter {
+    pub reference: Vec<String>,
+}

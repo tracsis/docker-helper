@@ -5,11 +5,13 @@
 
 mod types;
 
+pub use crate::types::*;
 use anyhow::{anyhow, Context, Result};
 use curl::easy::{Easy, List};
+use serde_json::ser::to_string;
 use std::collections::HashMap;
 use std::io::Read;
-use types::*;
+use urlencoding::encode;
 
 /// High level utility that pulls image, creates container with a given image,
 /// maps container port to host one and automatically starts it.
@@ -109,7 +111,6 @@ pub fn stop_container(id: &str) -> Result<()> {
 
 /// Prunes all stopped container
 ///
-///
 /// # Examples
 /// ```no_run
 /// let result = docker_helper::prune_containers();
@@ -118,6 +119,24 @@ pub fn prune_containers() -> Result<()> {
     let path = "/containers/prune".to_string();
     let _ = send_request(&path, true, None);
     Ok(())
+}
+
+/// Finds images for a given reference string (`image_name:version`)
+///
+/// # Examples
+/// ```no_run
+/// let result = docker_helper::find_images("ubuntu:20.04");
+/// ```
+pub fn find_images(reference: &str) -> Result<Vec<ImageDescriptor>> {
+    let filter = to_string(&ImageFilter {
+        reference: vec![reference.to_owned()],
+    })?;
+    let path = format!("/images/json?filters={}", encode(&filter));
+    let resp = send_request(&path, false, None)?;
+    let result: Vec<ImageDescriptor> = serde_json::from_str(&resp)
+        .with_context(|| format!("Failed to parse find_images response json: {}", resp))?;
+
+    Ok(result)
 }
 
 fn create_container(container_name: &str, request: CreateContainer) -> Result<String> {
@@ -135,9 +154,11 @@ fn send_request(path: &str, post: bool, maybe_json_data: Option<&[u8]>) -> Resul
     easy.unix_socket("/var/run/docker.sock")?;
     let url = format!("http://localhost{}", path);
     easy.url(&url)?;
+    println!("url = {}", &url);
 
     if post {
         easy.post(true)?;
+        easy.post_field_size(0)?;
     }
 
     let mut resp_data: Vec<u8> = Vec::new();
@@ -160,7 +181,6 @@ fn send_request(path: &str, post: bool, maybe_json_data: Option<&[u8]>) -> Resul
             transfer.perform()?;
         }
         None => {
-            easy.post_field_size(0)?;
             let mut transfer = easy.transfer();
             transfer.write_function(read_data)?;
             transfer.perform()?;
