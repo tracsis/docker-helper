@@ -31,3 +31,28 @@ pub struct ImageDescriptor {
 pub struct ImageFilter {
     pub reference: Vec<String>,
 }
+
+#[derive(Serialize)]
+pub struct ContainerFilter {
+    pub id: Vec<String>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ContainerDescriptor {
+    #[serde(rename = "Id")]
+    pub id: String,
+    #[serde(rename = "NetworkSettings")]
+    pub network_settings: NetworkSettings,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct NetworkSettings {
+    #[serde(rename = "Networks")]
+    pub networks: HashMap<String, Network>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Network {
+    #[serde(rename = "IPAddress")]
+    pub ip_address: String,
+}

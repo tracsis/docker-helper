@@ -133,6 +133,42 @@ pub fn prune_containers() -> Result<()> {
     Ok(())
 }
 
+/// Gets container IP from first network is the list
+///
+/// # Examples
+/// ```no_run
+/// let result = docker_helper::get_container_ip("6fe66725ed81");
+/// ```
+pub fn get_container_ip(id: &str) -> Result<String> {
+    Ok(find_containers(id)?
+        .first()
+        .context(format!("No containers found with ID = {}", id))?
+        .network_settings
+        .networks
+        .values()
+        .next()
+        .context(format!("No network found for container with ID = {}", id))?
+        .ip_address
+        .to_owned())
+}
+
+/// Finds containers with a given ID
+///
+/// # Examples
+/// ```no_run
+/// let result = docker_helper::find_containers("6fe66725ed81");
+/// ```
+pub fn find_containers(id: &str) -> Result<Vec<ContainerDescriptor>> {
+    let filter = to_string(&ContainerFilter {
+        id: vec![id.to_owned()],
+    })?;
+    let path = format!("/containers/json?filters={}", encode(&filter));
+    let resp = send_request(&path, false, false, None)?;
+    let result: Vec<ContainerDescriptor> = serde_json::from_str(&resp)
+        .with_context(|| format!("Failed to parse find_images response json: {}", resp))?;
+    Ok(result)
+}
+
 /// Finds images for a given reference string (`image_name:version`)
 ///
 /// # Examples
