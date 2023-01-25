@@ -57,23 +57,23 @@ pub fn start_container_with_network_mode(
 /// ```
 pub fn pull_image(image_name: &str) -> Result<()> {
     let path = format!("/images/create?fromImage={}", image_name);
-    let _ = send_request(&path, true, None)?;
+    let _ = send_request(&path, true, false, None)?;
     Ok(())
 }
 
-/// Stops container with a given `id` and subsequently calls [`prune_containers`]
+/// Stops and deletes container with a given `id`
 ///
 /// # Arguments
 /// * `id` - container id
 ///
 /// # Examples
 /// ```no_run
-/// let id = docker_helper::start_container_with_port_binding("test", "ubuntu:20.04", 80, 81).unwrap();
+/// let id = docker_helper::start_container_with_network_mode("test", "ubuntu:20.04", "host").unwrap();
 /// let result = docker_helper::stop_and_cleanup_container(&id);
 /// ```
 pub fn stop_and_cleanup_container(id: &str) -> Result<()> {
     stop_container(id)?;
-    prune_containers()
+    delete_container(id)
 }
 
 /// Starts container with a given `id`
@@ -87,7 +87,7 @@ pub fn stop_and_cleanup_container(id: &str) -> Result<()> {
 /// ```
 pub fn start_container(id: &str) -> Result<()> {
     let path = format!("/containers/{}/start", id);
-    let _ = send_request(&path, true, None)?;
+    let _ = send_request(&path, true, false, None)?;
     Ok(())
 }
 
@@ -102,7 +102,22 @@ pub fn start_container(id: &str) -> Result<()> {
 /// ```
 pub fn stop_container(id: &str) -> Result<()> {
     let path = format!("/containers/{}/stop", id);
-    let _ = send_request(&path, true, None)?;
+    let _ = send_request(&path, true, false, None)?;
+    Ok(())
+}
+
+/// Deletes container with a given `id`
+///
+/// # Arguments
+/// * `id` - container id
+///
+/// # Examples
+/// ```no_run
+/// let result = docker_helper::delete_container("6fe66725ed81");
+/// ```
+pub fn delete_container(id: &str) -> Result<()> {
+    let path = format!("/containers/{}", id);
+    let _ = send_request(&path, false, true, None)?;
     Ok(())
 }
 
@@ -114,7 +129,7 @@ pub fn stop_container(id: &str) -> Result<()> {
 /// ```
 pub fn prune_containers() -> Result<()> {
     let path = "/containers/prune".to_string();
-    let _ = send_request(&path, true, None);
+    let _ = send_request(&path, true, false, None);
     Ok(())
 }
 
@@ -129,7 +144,7 @@ pub fn find_images(reference: &str) -> Result<Vec<ImageDescriptor>> {
         reference: vec![reference.to_owned()],
     })?;
     let path = format!("/images/json?filters={}", encode(&filter));
-    let resp = send_request(&path, false, None)?;
+    let resp = send_request(&path, false, false, None)?;
     let result: Vec<ImageDescriptor> = serde_json::from_str(&resp)
         .with_context(|| format!("Failed to parse find_images response json: {}", resp))?;
 
@@ -140,22 +155,30 @@ fn create_container(container_name: &str, request: CreateContainer) -> Result<St
     let path = format!("/containers/create?name={}", container_name);
     let json = serde_json::to_string(&request)?;
     let bytes = json.as_bytes();
-    let resp = send_request(&path, true, Some(bytes))?;
+    let resp = send_request(&path, true, false, Some(bytes))?;
     let result: CreateContainerResult = serde_json::from_str(&resp)
         .with_context(|| format!("Failed to parse create_container response json: {}", resp))?;
     Ok(result.id)
 }
 
-fn send_request(path: &str, post: bool, maybe_json_data: Option<&[u8]>) -> Result<String> {
+fn send_request(
+    path: &str,
+    post: bool,
+    delete: bool,
+    maybe_json_data: Option<&[u8]>,
+) -> Result<String> {
     let mut easy = Easy::new();
     easy.unix_socket("/var/run/docker.sock")?;
     let url = format!("http://localhost{}", path);
     easy.url(&url)?;
-    println!("url = {}", &url);
 
     if post {
         easy.post(true)?;
         easy.post_field_size(0)?;
+    }
+
+    if delete {
+        easy.custom_request("DELETE")?;
     }
 
     let mut resp_data: Vec<u8> = Vec::new();
@@ -187,6 +210,6 @@ fn send_request(path: &str, post: bool, maybe_json_data: Option<&[u8]>) -> Resul
     let data = std::str::from_utf8(&resp_data).unwrap();
     match easy.response_code()? {
         200..=204 => Ok(data.to_owned()),
-        _ => Err(anyhow!("Docker API call failed: {}", data)),
+        _ => Err(anyhow!("Docker API call ({}) failed: {}", &path, data)),
     }
 }
