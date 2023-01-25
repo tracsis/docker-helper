@@ -11,8 +11,8 @@ pub struct PortBinding {
 pub struct CreateContainer {
     #[serde(rename = "Image")]
     pub image: String,
-    #[serde(rename = "PortBindings")]
-    pub port_bindings: HashMap<String, Vec<PortBinding>>,
+    #[serde(rename = "NetworkMode")]
+    pub network_mode: String,
 }
 
 #[derive(Deserialize, Debug)]

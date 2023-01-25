@@ -9,7 +9,6 @@ pub use crate::types::*;
 use anyhow::{anyhow, Context, Result};
 use curl::easy::{Easy, List};
 use serde_json::ser::to_string;
-use std::collections::HashMap;
 use std::io::Read;
 use urlencoding::encode;
 
@@ -24,28 +23,23 @@ use urlencoding::encode;
 ///
 /// # Examples
 /// ```no_run
-/// let result = docker_helper::start_container_with_port_binding("test", "ubuntu:20.04", 80, 81);
+/// let result = docker_helper::start_container_with_network_mode("test", "ubuntu:20.04", "host");
 /// ```
-pub fn start_container_with_port_binding(
+pub fn start_container_with_network_mode(
     container_name: &str,
     image: &str,
-    container_port: u16,
-    host_port: u16,
+    network_mode: &str,
 ) -> Result<String> {
     let existing_images = find_images(image)?;
     if existing_images.is_empty() {
         pull_image(image)?;
     }
+
     let id = create_container(
         container_name,
         CreateContainer {
             image: image.to_owned(),
-            port_bindings: HashMap::from([(
-                format!("{}/tcp", container_port),
-                vec![PortBinding {
-                    host_port: format!("{}", host_port),
-                }],
-            )]),
+            network_mode: network_mode.to_owned(),
         },
     )?;
     start_container(&id)?;
